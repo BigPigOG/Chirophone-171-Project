@@ -1,2 +1,6 @@
-# Chirophone-171-Project
-ICT171 Could Server Project - 2026
+# Chirophone - Air Piano
+**ICT171 Could Server Project - 2026**
+**Name:** Marwan Iqbal
+**SID:** 36054904
+
+
