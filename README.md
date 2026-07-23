@@ -165,4 +165,126 @@ ssh <username>@<public-ip>
 ex: marwanuser@20.222.194.146
 ```
 
+## 4. Web Server Installation
 
+Apache2 was installed to serve the Cinephone website over HTTP and, later, HTTPS.
+
+```bash
+sudo apt update
+sudo apt install apache2 -y
+```
+
+### Verification
+
+```bash
+sudo systemctl status apache2
+```
+
+Expected output includes `Active: active (running)`. The default Apache landing page was confirmed by visiting the VM's public IP address in a browser before any custom content was deployed.
+
+## 5. DNS Configuration
+
+Cinephone uses **No-IP**, a free dynamic DNS provider, to map a human-readable hostname to the VM's public IP address rather than relying on the raw IP.
+
+| Setting | Configuration |
+|---|---|
+| Provider | No-IP |
+| Hostname | `cinephone.sytes.net` |
+| Record type | A record (hostname → public IP) |
+
+### Steps
+
+1. Created a free account at [noip.com](https://www.noip.com/).
+2. Registered the hostname `cinephone.sytes.net`.
+3. Pointed the hostname at the virtual machine's public IP address through the No-IP dashboard.
+4. Confirmed DNS resolution from the server itself:
+
+```bash
+nslookup cinephone.sytes.net
+```
+
+The output confirmed the hostname correctly resolves to the VM's public IP address.
+
+> **Note:** No-IP's free hostnames are a static mapping rather than an auto-updating client. If the VM's public IP address changes (for example, after a VM restart, since this deployment does not use a static IP), the No-IP hostname record must be manually updated to point at the new address.
+
+## 6. SSL/TLS Configuration
+
+HTTPS is provided using a free certificate from **Let's Encrypt**, issued and managed through the Certbot client.
+
+```bash
+sudo apt install certbot python3-certbot-apache -y
+sudo certbot --apache -d cinephone.sytes.net
+```
+
+Certbot requested a certificate scoped to `cinephone.sytes.net`, updated the Apache virtual host configuration to serve traffic over HTTPS, and configured an automatic redirect from HTTP to HTTPS.
+
+### Verification
+
+```bash
+sudo apache2ctl configtest      # confirms the Apache configuration syntax is valid
+sudo systemctl reload apache2   # applies the updated configuration
+```
+
+Visiting `https://cinephone.sytes.net` shows a valid certificate with no browser warnings.
+
+### Renewal
+
+Let's Encrypt certificates are valid for 90 days. Certbot installs a systemd timer that renews certificates automatically before expiry. This was tested with:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+## 7. Website Deployment
+
+The Cinephone front end — a single HTML file containing the interface, hand-tracking logic, and audio engine — was deployed directly to Apache's web root.
+
+```bash
+sudo nano /var/www/html/index.html
+```
+
+The existing contents were replaced with the Cinephone application code, then saved. No build step or server-side framework is required, since the application is a static file that loads MediaPipe Hands and Tone.js from a CDN at runtime and performs all processing client-side in the browser.
+
+### Verification
+
+Visited `https://cinephone.sytes.net` directly and confirmed:
+- The page loads over HTTPS with no certificate warnings
+- The camera permission prompt appears correctly
+- Hand landmarks are detected and fingertip indicators render on screen
+- Curling a finger triggers the correct musical note
+
+## 8. Script Component
+
+The core script for this project is the **finger-curl detection algorithm**, written in JavaScript and embedded directly in the Cinephone front end.
+
+```js
+// Detects whether a finger is curled by comparing how far the fingertip
+// sits from the wrist versus how far the middle knuckle (pip joint) sits
+// from the wrist. A straight finger has its tip as the farthest point
+// from the wrist; a curled finger's tip moves closer to the wrist than
+// the knuckle beneath it. Comparing distances (rather than raw screen
+// coordinates) keeps this working regardless of hand rotation or tilt.
+function isFingerCurled(landmarks, finger) {
+  const wrist = landmarks[0];
+  const { tip, pip } = FINGER_LANDMARKS[finger];
+  return dist(landmarks[tip], wrist) < dist(landmarks[pip], wrist) * 0.92;
+}
+```
+
+This function is called once per tracked finger, per hand, on every processed video frame. Combined with an edge-detection check (comparing the current curl state against the previous frame's state), it ensures a note triggers exactly once per finger bend, rather than repeatedly firing while the finger is held curled.
+
+### Verifiable output
+
+The output of this script can be verified independently by visiting **[https://cinephone.sytes.net](https://cinephone.sytes.net)**, allowing camera access, and curling any finger. The corresponding note name appears immediately as an on-screen toast, and the matching key in the on-screen piano strip highlights — providing direct visual confirmation that the detection logic executed correctly and produced the expected mapped output.
+
+## 9. Final Verification Checklist
+
+| Check | Status |
+|---|---|
+| VM accessible via SSH | ✅ |
+| Apache2 running | ✅ |
+| Site resolves via `cinephone.sytes.net` | ✅ |
+| HTTPS certificate valid, no warnings | ✅ |
+| Camera permission prompt functions correctly | ✅ |
+| Hand tracking detects landmarks in real time | ✅ |
+| Finger curl correctly triggers mapped note | ✅ |
