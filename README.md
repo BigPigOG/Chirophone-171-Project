@@ -41,3 +41,43 @@ The following inbound rules were confirmed/added under **VM → Networking → I
  
 HTTP and HTTPS were required to serve the website publicly; SSH was required for remote administration.
  
+## 3. Connecting to the VM
+ 
+Connected from a local machine via SSH, using the VM's public IP address:
+```bash
+ssh <username>@<public-ip>
+```
+On first connection, the SSH client prompts to confirm the host fingerprint — this is expected for a new server and was accepted before entering the account password.
+ 
+## 4. Web Server Installation
+ 
+**Apache HTTP Server** was installed to serve the website.
+ 
+```bash
+sudo apt update
+sudo apt install apache2 -y
+```
+ 
+Verified the service was running:
+```bash
+sudo systemctl status apache2
+```
+Expected output includes `Active: active (running)`.
+ 
+Confirmed the server was publicly reachable by visiting the VM's public IP address in a browser and seeing the default Apache landing page.
+
+ ## 5. DNS Setup
+ 
+Rather than relying on the VM's raw IP address, DNS was configured through **[No-IP](https://www.noip.com/)**, a free dynamic DNS provider.
+ 
+- **Domain:** `cinephone.sytes.net`
+- **Points to:** the Azure VM's public IP address
+### Steps
+1. Created a free No-IP account and registered the hostname `cinephone.sytes.net`.
+2. Pointed the hostname at the VM's public IP address through the No-IP dashboard.
+3. Confirmed DNS resolution from the VM itself:
+```bash
+   nslookup cinephone.sytes.net
+```
+   The output confirmed the hostname correctly resolves to the VM's public IP address.
+ 
