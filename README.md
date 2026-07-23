@@ -93,3 +93,76 @@ Tone.js audio            Canvas overlay
      |                        |
      v                        v
 Musical note             Fingertip dots
+```
+
+# Cloud Server Deployment
+
+## Prerequisites
+
+The following were required before beginning the deployment:
+
+- Microsoft Azure account
+- Azure student subscription
+- Local terminal with SSH support
+- Cinephone website files
+- No-IP account
+- Email address for Let's Encrypt
+- Basic familiarity with Linux commands
+
+## 1. Azure Virtual Machine Configuration
+
+The Cinephone server was deployed using Microsoft Azure Infrastructure as a Service.
+
+| Setting | Configuration |
+|---|---|
+| Resource group | `Rgroup` |
+| Region | Japan East |
+| Image | Ubuntu Server 22.04 LTS |
+| VM size | Standard B2ats v2 |
+| Virtual CPUs | 2 |
+| Memory | 1 GiB |
+| Authentication | Password-based SSH |
+| Inbound ports | 22, 80 and 443 |
+
+### VM Creation Process
+
+1. Signed in to the Microsoft Azure Portal.
+2. Created a resource group named `Rgroup`.
+3. Created a new Azure virtual machine.
+4. Selected Ubuntu Server 22.04 LTS.
+5. Selected Standard B2ats v2 as the VM size.
+6. Created an administrator username and password.
+7. Enabled password-based SSH authentication.
+8. Completed the virtual machine deployment.
+9. Recorded the public IP address from the VM Overview page.
+
+The server was administered entirely through SSH and command-line tools. No graphical desktop environment was installed on the virtual machine.
+
+## 2. Network Security Group Rules
+
+Azure created a Network Security Group for the virtual machine.
+
+The following inbound rules were confirmed or added:
+
+| Priority | Name | Port | Protocol | Source | Action |
+|---|---|---:|---|---|---|
+| 300 | SSH | 22 | TCP | Any | Allow |
+| 320 | HTTP | 80 | TCP | Any | Allow |
+| 340 | HTTPS | 443 | TCP | Any | Allow |
+
+### Port Purposes
+
+- Port 22 allows remote administration through SSH.
+- Port 80 allows standard HTTP traffic and Let's Encrypt validation.
+- Port 443 allows encrypted HTTPS traffic.
+
+## 3. Connecting to the Server
+
+The server was accessed from a local terminal using SSH:
+
+```bash
+ssh <username>@<public-ip>
+ex: marwanuser@20.222.194.146
+```
+
+
