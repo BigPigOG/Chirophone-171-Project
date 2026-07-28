@@ -1,3 +1,6 @@
+<img width="552" height="486" alt="Screen Shot 2026-07-28 at 3 09 51 PM" src="https://github.com/user-attachments/assets/72ecf33b-bab8-4308-bca9-26e91af503a0" />
+<img width="731" height="580" alt="Screen Shot 2026-07-28 at 3 10 23 PM" src="https://github.com/user-attachments/assets/40e07f48-0663-4f11-b567-8ce563fe11f0" />
+
 # Cinephone: Air Piano
 Cinephone is an interactive browser-based air piano that uses real-time webcam hand tracking to turn finger movements into musical notes. Users hold their hands in front of the camera and curl individual fingers to play notes from C4 to C5.
 
