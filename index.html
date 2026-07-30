@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cinephone - Play the air like a piano.</title>
+
+<link
+  rel="icon"
+  type="image/svg+xml"
+  href='data:image/svg+xml,
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="14" fill="%23FF4E32"/>
+    <rect x="5" y="40" width="54" height="19" rx="3" fill="white"/>
+    <path d="M14 40V59 M25 40V59 M36 40V59 M47 40V59"
+          stroke="%23201A14" stroke-width="1.5"/>
+    <rect x="10" y="40" width="7" height="11" rx="1" fill="%23201A14"/>
+    <rect x="22" y="40" width="7" height="11" rx="1" fill="%23201A14"/>
+    <rect x="40" y="40" width="7" height="11" rx="1" fill="%23201A14"/>
+    <rect x="52" y="40" width="6" height="11" rx="1" fill="%23201A14"/>
+    <path
+      d="M13 32 C18 28 22 22 28 19 C31 17 34 18 35 21
+      L31 29 L38 19 C40 16 44 18 43 22 L39 31
+      L46 23 C49 20 52 23 50 27 L43 37
+      C40 41 35 44 30 44 L20 43
+      C14 42 9 38 9 35 C9 33 11 32 13 32Z"
+      fill="white"
+    />
+  </svg>'
+>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400..800&family=Caveat:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+
+<style>
+  :root {
+    --paper: #F7F1E4;
+    --paper-dot: rgba(32,26,20,0.10);
+    --ink: #201A14;
+    --ink-soft: #55493D;
+    --coral: #FF4E32;
+    --coral-dark: #D93B22;
+    --yellow: #FFC845;
+    --surface: #FFFDF8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+  }
+
+  ::selection { background: var(--coral); color: white; }
+
+  .display { font-family: 'Bricolage Grotesque', sans-serif; }
+  .scribble { font-family: 'Caveat', cursive; }
+
+  /* ---------- Screen management ---------- */
+  .screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.98);
+  }
+
+  /* ================= SCREEN 1 - Intro ================= */
+  #intro {
+    display: block;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background-color: var(--paper);
+    background-image: radial-gradient(var(--paper-dot) 1.6px, transparent 1.6px);
+    background-size: 22px 22px;
+  }
+
+  .wordmark {
+    position: fixed;
+    top: 22px;
+    left: 22px;
+    z-index: 10;
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .wordmark .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--coral);
+    border: 2px solid var(--ink);
+    display: inline-block;
+  }
+
+  .beta-stamp {
+    position: fixed;
+    top: 20px;
+    right: 22px;
+    z-index: 10;
+    background: var(--yellow);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    transform: rotate(4deg);
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+
+  .hero-block {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 110px 24px 70px;
+    position: relative;
+  }
+
+  .intro-content { max-width: 680px; position: relative; }
+
+  .intro-content h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: clamp(2.7rem, 7.5vw, 5rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    margin-bottom: 26px;
+  }
+
+  .h1-line2 { position: relative; display: inline-block; }
+
+  .h1-line2 .word-fill { color: var(--coral); }
+
+  .squiggle {
+    position: absolute;
+    left: 0;
+    bottom: -14px;
+    width: 100%;
+    height: 16px;
+  }
+
+  .intro-content p.sub {
+    font-size: 1.14rem;
+    color: var(--ink-soft);
+    font-weight: 400;
+    line-height: 1.55;
+    max-width: 460px;
+    margin: 0 auto 12px;
+  }
+
+  .cta-wrap {
+    position: relative;
+    display: inline-block;
+    margin-top: 30px;
+  }
+
+  #startBtn {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--ink);
+    background: var(--coral);
+    border: 3px solid var(--ink);
+    padding: 16px 40px;
+    border-radius: 999px;
+    cursor: pointer;
+    letter-spacing: -0.005em;
+    box-shadow: 5px 5px 0 var(--ink);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  #startBtn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 7px 7px 0 var(--ink);
+  }
+
+  #startBtn:active {
+    transform: translate(3px, 3px);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  #startBtn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+
+  #startBtn:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+  }
+
+  .nudge {
+    position: absolute;
+    top: -6px;
+    left: calc(100% + 14px);
+    width: 150px;
+    color: var(--ink-soft);
+    font-family: 'Caveat', cursive;
+    font-size: 1.35rem;
+    line-height: 1.1;
+    text-align: left;
+    transform: rotate(-4deg);
+    pointer-events: none;
+  }
+
+  .nudge svg { display: block; margin-bottom: 2px; margin-left: 8px; }
+
+  .microcopy {
+    margin-top: 26px;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    opacity: 0.85;
+  }
+
+  /* ---- Info / budget pitch section ---- */
+  .info-section {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 30px 24px 80px;
+    text-align: center;
+  }
+
+  .info-section h2 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: clamp(1.7rem, 4.2vw, 2.3rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 18px;
+  }
+
+  .info-section p {
+    color: var(--ink-soft);
+    font-size: 1.04rem;
+    line-height: 1.65;
+    margin-bottom: 16px;
+  }
+
+  .price-strip {
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-top: 36px;
+  }
+
+  .price-tag {
+    background: var(--surface);
+    border: 2.5px solid var(--ink);
+    border-radius: 12px;
+    padding: 16px 22px;
+    min-width: 130px;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .price-tag:nth-child(1) { transform: rotate(-3deg); }
+  .price-tag:nth-child(2) { transform: rotate(2deg); }
+  .price-tag:nth-child(3) {
+    transform: rotate(-1deg);
+    background: var(--coral);
+    border-color: var(--ink);
+  }
+
+  .price-tag .amount {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--ink);
+  }
+
+  .price-tag:nth-child(1) .amount,
+  .price-tag:nth-child(2) .amount {
+    text-decoration: line-through;
+    text-decoration-color: var(--coral);
+    text-decoration-thickness: 3px;
+  }
+
+  .price-tag:nth-child(3) .amount { color: var(--ink); }
+
+  .price-tag .label {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  .price-tag:nth-child(3) .label { color: var(--ink); font-weight: 700; }
+
+  /* ---- Instructions section ---- */
+  .instructions-section {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 10px 24px 100px;
+  }
+
+  .instructions-section h2 {
+    text-align: center;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: clamp(1.6rem, 3.8vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 34px;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+
+  .step-card {
+    background: var(--surface);
+    border: 2.5px solid var(--ink);
+    border-radius: 14px;
+    padding: 26px 20px 22px;
+    box-shadow: 5px 5px 0 var(--ink);
+    position: relative;
+  }
+
+  .step-card:nth-child(1) { transform: rotate(-1.5deg); }
+  .step-card:nth-child(2) { transform: rotate(1deg); }
+  .step-card:nth-child(3) { transform: rotate(-1deg); }
+
+  .step-num {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--yellow);
+    border: 2px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Caveat', cursive;
+    font-weight: 700;
+    font-size: 1.15rem;
+    margin-bottom: 12px;
+  }
+
+  .step-card h3 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .step-card p {
+    font-size: 0.87rem;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+
+  @media (max-width: 700px) {
+    .steps-grid { grid-template-columns: 1fr; }
+    .nudge { display: none; }
+  }
+
+  .site-footer {
+    text-align: center;
+    padding: 10px 24px 50px;
+  }
+
+  .site-footer .quip {
+    font-family: 'Caveat', cursive;
+    font-size: 1.15rem;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+
+  .site-footer .credit {
+    font-size: 0.76rem;
+    color: var(--ink-soft);
+    opacity: 0.8;
+  }
+
+  /* ================= SCREEN 2 - Live Cinephone ================= */
+  #live {
+    background: #000;
+  }
+
+  .video-wrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  #video, #overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+
+  #video { z-index: 1; }
+  #overlay { z-index: 2; }
+
+  .top-fade {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 120px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.4), transparent);
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .back-btn {
+    position: absolute;
+    top: 20px; left: 20px;
+    z-index: 4;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2.5px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 700;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .back-btn:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--ink); }
+  .back-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
+
+  .live-status {
+    position: absolute;
+    top: 24px; right: 20px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--yellow);
+    border: 2px solid var(--ink);
+    padding: 7px 14px 7px 10px;
+    border-radius: 999px;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--coral-dark);
+    animation: pulseDot 1.6s ease-in-out infinite;
+  }
+
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  .note-toast {
+    position: absolute;
+    bottom: 132px;
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    z-index: 4;
+    background: var(--coral);
+    border: 2.5px solid var(--ink);
+    color: var(--ink);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    padding: 8px 20px;
+    border-radius: 999px;
+    box-shadow: 3px 3px 0 var(--ink);
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    pointer-events: none;
+  }
+  .note-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .keystrip {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    gap: 3px;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    background: var(--paper);
+    border-top: 3px solid var(--ink);
+  }
+
+  .key {
+    flex: 1;
+    height: 66px;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.08s ease, box-shadow 0.08s ease, transform 0.08s ease;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  .key .note-label {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+  }
+
+  .key.active {
+    background: var(--coral);
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+  .key.active .note-label { color: var(--ink); }
+
+  .permission-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: white;
+    text-align: center;
+    padding: 0 24px;
+    transition: opacity 0.35s ease;
+  }
+  .permission-veil.hidden { opacity: 0; pointer-events: none; }
+
+  .spinner {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.25);
+    border-top-color: var(--coral);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .permission-veil p { font-size: 0.95rem; color: rgba(255,255,255,0.85); max-width: 300px; }
+
+  /* Onboarding guidance bubbles */
+  .hand-guide {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-1.5deg);
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: calc(100% - 40px);
+    padding: 14px 18px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 2.5px solid var(--ink);
+    box-shadow: 5px 5px 0 var(--coral);
+    color: var(--ink);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+  }
+
+  .hand-guide.hidden {
+    opacity: 0;
+    transform: translate(-50%, -46%) rotate(-1.5deg);
+  }
+
+  .hand-guide-icon {
+    width: 54px;
+    height: 54px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    background: var(--yellow);
+    border: 2px solid var(--ink);
+    display: grid;
+    place-items: center;
+    font-size: 1.8rem;
+  }
+
+  .hand-guide strong {
+    display: block;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.94rem;
+    font-weight: 800;
+    margin-bottom: 3px;
+  }
+
+  .hand-guide span {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    line-height: 1.35;
+  }
+
+  @media (max-width: 640px) {
+    .key .note-label { font-size: 0.68rem; }
+    .key { height: 54px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= SCREEN 1 : INTRO ================= -->
+<div class="screen" id="intro">
+  <div class="wordmark"><span class="dot"></span>Cinephone</div>
+  <div class="beta-stamp">★ still in beta</div>
+
+  <div class="hero-block">
+    <div class="intro-content">
+      <h1>
+        Play the air
+        <span class="h1-line2">
+          <span class="word-fill">like a piano.</span>
+          <svg class="squiggle" viewBox="0 0 300 16" preserveAspectRatio="none">
+            <path d="M2 10 Q 20 2, 38 10 T 74 10 T 110 10 T 146 10 T 182 10 T 218 10 T 254 10 T 290 10"
+                  fill="none" stroke="#FF4E32" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </span>
+      </h1>
+      <p class="sub">No piano? No problem. Just a webcam, two palms, and a couple of fingers willing to embarrass themselves.</p>
+
+      <div class="cta-wrap">
+        <button id="startBtn">Try It Out</button>
+        <div class="nudge">
+          <svg width="60" height="34" viewBox="0 0 60 34" fill="none">
+            <path d="M2 4 C 10 4, 8 26, 30 24 C 42 23, 44 14, 56 16" stroke="#55493D" stroke-width="2" stroke-linecap="round"/>
+            <path d="M48 10 L 57 16 L 47 21" stroke="#55493D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          go on, poke it
+        </div>
+      </div>
+
+      <div class="microcopy">Requires camera access. Runs entirely in your browser.</div>
+    </div>
+  </div>
+
+  <div class="info-section">
+    <h2>Pianos are expensive. This is not.</h2>
+    <p>A real piano costs more than a used car. A decent digital keyboard still costs more than a month of rent. Cinephone costs whatever your webcam already cost you, which for most people is nothing extra at all.</p>
+    <p>It is not going to replace a Steinway any time soon (or possibly ever), but it is just getting started. More notes, better tracking, maybe even full chords are all on the roadmap. Consider this the very early alpha version of your future air orchestra.</p>
+    <div class="price-strip">
+      <div class="price-tag">
+        <div class="amount">$3,000+</div>
+        <div class="label">Real piano</div>
+      </div>
+      <div class="price-tag">
+        <div class="amount">$200+</div>
+        <div class="label">Digital keyboard</div>
+      </div>
+      <div class="price-tag">
+        <div class="amount">$0</div>
+        <div class="label">Cinephone (obviously)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="instructions-section">
+    <h2>The (extremely technical) manual</h2>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <h3>Get comfortable</h3>
+        <p>Hold both hands up, palms toward the camera, fingers spread like you are conducting an orchestra (or surrendering to airport security).</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <h3>Curl to play</h3>
+        <p>Bend any finger toward your palm and it plays a note. Straighten it back out to reset it.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <h3>Know your range</h3>
+        <p>Left hand covers C4 to F4, right hand covers G4 to C5. Together, that is a full octave of mild musical chaos.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="quip">no pianos were harmed in the making of this website</div>
+    <div class="credit">Marwan Iqbal, 36054904. Licensed under MIT.</div>
+  </footer>
+</div>
+
+<!-- ================= SCREEN 2 : LIVE ================= -->
+<div class="screen hidden" id="live">
+  <div class="video-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="overlay"></canvas>
+    <div class="top-fade"></div>
+
+    <button class="back-btn" id="backBtn" aria-label="Back">&#8592;</button>
+    <div class="live-status"><span class="live-dot"></span>Live</div>
+    <div class="note-toast" id="noteToast">C4</div>
+
+    <div class="hand-guide hidden" id="handGuide">
+      <div class="hand-guide-icon">👐</div>
+      <div>
+        <strong>Show me your palms</strong>
+        <span>Keep both hands open and inside the frame so the camera can find your fingertips.</span>
+      </div>
+    </div>
+
+    <div class="hand-guide hidden" id="curlGuide">
+      <div class="hand-guide-icon">🎵</div>
+      <div>
+        <strong>Curl a finger to play a note</strong>
+        <span>Bend any finger toward your palm. Straighten it back out to play it again.</span>
+      </div>
+    </div>
+
+    <div class="permission-veil" id="permVeil">
+      <div class="spinner"></div>
+      <p>Requesting camera access...</p>
+    </div>
+  </div>
+
+  <div class="keystrip" id="keystrip"><!-- keys injected by JS --></div>
+</div>
+
+<script>
+/* =====================================================================
+   CINEPHONE - Webcam hand-tracking piano
+   -----------------------------------------------------------------
+   1. MediaPipe Hands detects up to 2 hands, 21 landmarks each, from
+      the live webcam feed, entirely client-side.
+   2. Each of 4 fingers per hand (index/middle/ring/pinky) is classed
+      CURLED or EXTENDED using a distance-based heuristic.
+   3. On an EXTENDED -> CURLED transition, the mapped note plays via
+      Tone.js and the matching key + a small toast light up.
+   4. Onboarding runs in two stages: first a bubble asks the user to
+      show their palms, then once hands are detected, a second bubble
+      explains curling a finger to play a note. That bubble hides once
+      the first note has actually played.
+   ===================================================================== */
+
+const NOTE_MAP = {
+  Left:  { index: "F4", middle: "E4", ring: "D4", pinky: "C4" },
+  Right: { index: "G4", middle: "A4", ring: "B4", pinky: "C5" },
+};
+
+const KEY_ORDER = [
+  { note: "C4", hand: "Left",  finger: "pinky"  },
+  { note: "D4", hand: "Left",  finger: "ring"   },
+  { note: "E4", hand: "Left",  finger: "middle" },
+  { note: "F4", hand: "Left",  finger: "index"  },
+  { note: "G4", hand: "Right", finger: "index"  },
+  { note: "A4", hand: "Right", finger: "middle" },
+  { note: "B4", hand: "Right", finger: "ring"   },
+  { note: "C5", hand: "Right", finger: "pinky"  },
+];
+
+const FINGER_LANDMARKS = {
+  index:  { tip: 8,  pip: 6  },
+  middle: { tip: 12, pip: 10 },
+  ring:   { tip: 16, pip: 14 },
+  pinky:  { tip: 20, pip: 18 },
+};
+
+const FINGERTIP_IDS = [8, 12, 16, 20]; // for minimal dot overlay (index..pinky)
+
+const prevCurlState = {
+  Left:  { index: false, middle: false, ring: false, pinky: false },
+  Right: { index: false, middle: false, ring: false, pinky: false },
+};
+
+// ---- Build keystrip ----
+const keystripEl = document.getElementById("keystrip");
+const keyElements = {};
+KEY_ORDER.forEach(k => {
+  const el = document.createElement("div");
+  el.className = "key";
+  el.innerHTML = `<span class="note-label">${k.note}</span>`;
+  keystripEl.appendChild(el);
+  keyElements[k.note] = el;
+});
+
+const noteToast = document.getElementById("noteToast");
+const handGuide = document.getElementById("handGuide");
+const curlGuide = document.getElementById("curlGuide");
+let hasDetectedHands = false;
+let hasPlayedNote = false;
+let toastTimer = null;
+
+function flashKey(note) {
+  const el = keyElements[note];
+  if (el) {
+    el.classList.add("active");
+    setTimeout(() => el.classList.remove("active"), 200);
+  }
+  noteToast.textContent = note;
+  noteToast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => noteToast.classList.remove("show"), 500);
+
+  // First successful note dismisses the "curl a finger" guidance bubble
+  if (!hasPlayedNote) {
+    hasPlayedNote = true;
+    curlGuide.classList.add("hidden");
+  }
+}
+
+// ---- Audio ----
+let synth;
+function initAudio() {
+  synth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.01, decay: 0.15, sustain: 0.2, release: 0.6 },
+  }).toDestination();
+}
+function playNote(note) {
+  if (synth) synth.triggerAttackRelease(note, "8n");
+}
+
+// ---- Curl heuristic ----
+function dist(a, b) {
+  const dx = a.x - b.x, dy = a.y - b.y, dz = (a.z || 0) - (b.z || 0);
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+function isFingerCurled(landmarks, finger) {
+  const wrist = landmarks[0];
+  const { tip, pip } = FINGER_LANDMARKS[finger];
+  return dist(landmarks[tip], wrist) < dist(landmarks[pip], wrist) * 0.92;
+}
+
+// ---- MediaPipe setup ----
+const videoEl = document.getElementById("video");
+const overlayEl = document.getElementById("overlay");
+const overlayCtx = overlayEl.getContext("2d");
+
+const hands = new Hands({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+});
+hands.setOptions({
+  maxNumHands: 2,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.6,
+});
+hands.onResults(onResults);
+
+function onResults(results) {
+  overlayEl.width = videoEl.videoWidth;
+  overlayEl.height = videoEl.videoHeight;
+  overlayCtx.clearRect(0, 0, overlayEl.width, overlayEl.height);
+
+  const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
+
+  if (numHands > 0) {
+    // First detection: swap the "show your palms" bubble for the "curl a finger" bubble
+    if (!hasDetectedHands) {
+      hasDetectedHands = true;
+      handGuide.classList.add("hidden");
+      curlGuide.classList.remove("hidden");
+    }
+
+    results.multiHandLandmarks.forEach((landmarks, i) => {
+      const handednessLabel = results.multiHandedness[i].label; // "Left" | "Right"
+
+      // Minimal fingertip dots only, not a full skeleton mesh
+      overlayCtx.fillStyle = "rgba(255,78,50,0.9)";
+      FINGERTIP_IDS.forEach((id) => {
+        const pt = landmarks[id];
+        const x = pt.x * overlayEl.width;
+        const y = pt.y * overlayEl.height;
+        overlayCtx.beginPath();
+        overlayCtx.arc(x, y, 6, 0, 2 * Math.PI);
+        overlayCtx.fill();
+      });
+
+      Object.keys(FINGER_LANDMARKS).forEach((finger) => {
+        const curled = isFingerCurled(landmarks, finger);
+        const wasCurled = prevCurlState[handednessLabel][finger];
+        if (curled && !wasCurled) {
+          const note = NOTE_MAP[handednessLabel][finger];
+          if (note) { playNote(note); flashKey(note); }
+        }
+        prevCurlState[handednessLabel][finger] = curled;
+      });
+    });
+  }
+}
+
+// ---- Screen transition + bootstrap ----
+const introScreen = document.getElementById("intro");
+const liveScreen = document.getElementById("live");
+const startBtn = document.getElementById("startBtn");
+const backBtn = document.getElementById("backBtn");
+const permVeil = document.getElementById("permVeil");
+
+let camera = null;
+
+startBtn.addEventListener("click", async () => {
+  startBtn.disabled = true;
+  startBtn.textContent = "Starting...";
+
+  introScreen.classList.add("hidden");
+  liveScreen.classList.remove("hidden");
+  permVeil.classList.remove("hidden");
+
+  try {
+    await Tone.start();
+    initAudio();
+
+    camera = new Camera(videoEl, {
+      onFrame: async () => { await hands.send({ image: videoEl }); },
+      width: 960,
+      height: 720,
+    });
+    await camera.start();
+
+    permVeil.classList.add("hidden");
+    hasDetectedHands = false;
+    hasPlayedNote = false;
+    curlGuide.classList.add("hidden");
+    handGuide.classList.remove("hidden");
+  } catch (err) {
+    console.error(err);
+    liveScreen.classList.add("hidden");
+    introScreen.classList.remove("hidden");
+    startBtn.disabled = false;
+    startBtn.textContent = "Try It Out";
+    alert("Camera access is required to use Cinephone. Please allow camera permission and try again.");
+  }
+});
+
+backBtn.addEventListener("click", () => {
+  if (camera) { camera.stop(); camera = null; }
+  const stream = videoEl.srcObject;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+
+  liveScreen.classList.add("hidden");
+  introScreen.classList.remove("hidden");
+  startBtn.disabled = false;
+  startBtn.textContent = "Try It Out";
+  hasDetectedHands = false;
+  hasPlayedNote = false;
+  handGuide.classList.add("hidden");
+  curlGuide.classList.add("hidden");
+});
+</script>
+
+</body>
+</html>
