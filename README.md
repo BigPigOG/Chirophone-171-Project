@@ -1,8 +1,7 @@
-<img width="552" height="486" alt="Screen Shot 2026-07-28 at 3 09 51 PM" src="https://github.com/user-attachments/assets/72ecf33b-bab8-4308-bca9-26e91af503a0" />
-<img width="731" height="580" alt="Screen Shot 2026-07-28 at 3 10 23 PM" src="https://github.com/user-attachments/assets/40e07f48-0663-4f11-b567-8ce563fe11f0" />
-
 # Cinephone: Air Piano
 Cinephone is an interactive browser-based air piano that uses real-time webcam hand tracking to turn finger movements into musical notes. Users hold their hands in front of the camera and curl individual fingers to play notes from C4 to C5.
+
+<img width="552" height="486" alt="Screen Shot 2026-07-28 at 3 09 51 PM" src="https://github.com/user-attachments/assets/72ecf33b-bab8-4308-bca9-26e91af503a0" />
 
 ## Project Information
 
@@ -14,7 +13,6 @@ Cinephone is an interactive browser-based air piano that uses real-time webcam h
 | Assignment | Cloud Server Project and Video Explainer — 2026 |
 | Live website | [https://cinephone.sytes.net](https://cinephone.sytes.net) |
 | Public IP address | `20.222.194.146` |
-| GitHub repository | `a` |
 | Video explainer | `a` |
 | Cloud platform | Microsoft Azure |
 | Deployment model | Infrastructure as a Service |
@@ -167,6 +165,7 @@ The server was accessed from a local terminal using SSH:
 ssh <username>@<public-ip>
 ex: marwanuser@20.222.194.146
 ```
+<img width="460" height="172" alt="Screen Shot 2026-07-30 at 4 09 17 PM" src="https://github.com/user-attachments/assets/90cab761-df25-4e3b-abbb-27738d569f44" />
 
 ## 4. Web Server Installation
 
@@ -194,6 +193,8 @@ Cinephone uses **No-IP**, a free dynamic DNS provider, to map a human-readable h
 | Provider | No-IP |
 | Hostname | `cinephone.sytes.net` |
 | Record type | A record (hostname → public IP) |
+
+<img width="901" height="348" alt="Screen Shot 2026-07-30 at 4 11 05 PM" src="https://github.com/user-attachments/assets/5b7850af-c764-4917-b8fb-6dd4e25cc619" />
 
 ### Steps
 
