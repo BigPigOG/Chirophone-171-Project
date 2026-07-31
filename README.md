@@ -13,7 +13,7 @@ Cinephone is an interactive browser-based air piano that uses real-time webcam h
 | Assignment | Cloud Server Project and Video Explainer — 2026 |
 | Live website | [https://cinephone.sytes.net](https://cinephone.sytes.net) |
 | Public IP address | `20.222.194.146` |
-| Video explainer | `https://drive.google.com/file/d/1Icf8qiRil3qVeAq7BLvuHVCjSArbcN93/view?usp=drive_link` |
+| Video explainer | [https://drive.google.com/file/d/1Icf8qiRil3qVeAq7BLvuHVCjSArbcN93/view?usp=drive_link]|
 | Cloud platform | Microsoft Azure |
 | Deployment model | Infrastructure as a Service |
 | Operating system | Ubuntu Server 22.04 LTS |
